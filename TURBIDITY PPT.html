@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presentasi: Sistem Monitoring Kekeruhan Air</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      /* Menggunakan font Inter */
+      body {
+        font-family: "Inter", sans-serif;
+        overflow: hidden; /* Mencegah scroll utama */
+      }
+
+      /* Animasi Latar Belakang Gelembung */
+      .bubble-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #e0f7fa, #80deea);
+        transition: background 2s ease-in-out;
+      }
+
+      .bubble {
+        position: absolute;
+        bottom: -150px;
+        width: 40px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        animation: rise 15s infinite ease-in;
+        opacity: 0;
+      }
+
+      .bubble:nth-child(2) {
+        left: 10%;
+        animation-duration: 20s;
+        animation-delay: 1s;
+        width: 20px;
+        height: 20px;
+      }
+      .bubble:nth-child(3) {
+        left: 20%;
+        animation-duration: 12s;
+        animation-delay: 2s;
+      }
+      .bubble:nth-child(4) {
+        left: 35%;
+        animation-duration: 25s;
+        animation-delay: 4s;
+        width: 50px;
+        height: 50px;
+      }
+      .bubble:nth-child(5) {
+        left: 50%;
+        animation-duration: 18s;
+        animation-delay: 0s;
+      }
+      .bubble:nth-child(6) {
+        left: 65%;
+        animation-duration: 14s;
+        animation-delay: 6s;
+        width: 30px;
+        height: 30px;
+      }
+      .bubble:nth-child(7) {
+        left: 80%;
+        animation-duration: 22s;
+        animation-delay: 3s;
+      }
+      .bubble:nth-child(8) {
+        left: 90%;
+        animation-duration: 16s;
+        animation-delay: 5s;
+        width: 25px;
+        height: 25px;
+      }
+
+      @keyframes rise {
+        0% {
+          transform: translateY(0);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100vh);
+          opacity: 0;
+        }
+      }
+
+      /* Kontrol Presentasi */
+      .slide {
+        display: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        padding: 1rem;
+        opacity: 0;
+        transition: opacity 0.6s ease-in-out;
+        overflow-y: auto;
+      }
+      @media (min-width: 768px) {
+        .slide {
+          padding: 2rem;
+        }
+      }
+
+      .slide.active {
+        display: flex;
+        opacity: 1;
+        z-index: 10;
+      }
+
+      #slide1-hero {
+        transition: transform 0.1s linear;
+      }
+
+      .code-block {
+        background-color: #1e2c3b;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        font-family: "Courier New", Courier, monospace;
+      }
+      .code-block:hover {
+        background-color: #334155;
+      }
+      .code-keyword {
+        color: #93c5fd;
+      }
+      .code-comment {
+        color: #64748b;
+      }
+      .code-string {
+        color: #a5f3fc;
+      }
+      .code-function {
+        color: #f9a8d4;
+      }
+
+      #sensor-canvas-container {
+        position: relative;
+        width: 100%;
+        height: 350px;
+        max-width: 600px;
+        margin: auto;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        cursor: grab;
+      }
+      @media (min-width: 768px) {
+        #sensor-canvas-container {
+          height: 400px;
+        }
+      }
+      #sensor-canvas-container:active {
+        cursor: grabbing;
+      }
+
+      #tooltip {
+        position: absolute;
+        display: none;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        pointer-events: none; /* Allows mouse events to pass through */
+        z-index: 100;
+        max-width: 200px;
+      }
+      #animation-legend {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        border: 1px solid #fff;
+      }
+
+      #keyboard-hint {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 16px;
+        z-index: 1000;
+        opacity: 1;
+        transition: opacity 1s ease-in-out 3s;
+      }
+
+      #keyboard-hint.fade-out {
+        opacity: 0;
+      }
+
+      #title-container span,
+      #author-names p span {
+        display: inline-block;
+        transition: color 1.5s ease;
+      }
+
+      #author-names p span {
+        animation: wave 2.5s infinite ease-in-out;
+        animation-delay: calc(0.08s * var(--i));
+      }
+
+      .thermo-letter {
+        color: #8d6e63 !important; /* Warna keruh/coklat */
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      /* Animasi Judul Arus Air */
+      .title-svg {
+        width: 100%;
+        max-width: 1400px;
+        height: auto;
+        margin-bottom: 1rem;
+      }
+
+      .title-svg text {
+        font-family: "Inter", sans-serif;
+        font-weight: 800;
+        font-size: 38px;
+      }
+      @media (min-width: 768px) {
+        .title-svg text {
+          font-size: 60px;
+        }
+      }
+
+      .title-fill {
+        fill: white;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      .title-stroke {
+        fill: none;
+        stroke: #22d3ee; /* Cyan cerah */
+        stroke-width: 1.5;
+        stroke-dasharray: 6000;
+        stroke-dashoffset: 6000;
+        animation: draw-title 12s ease-in-out forwards;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes draw-title {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* Animasi Hujan & Angin */
+      .effect-container {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        overflow: hidden;
+      }
+      .effect-container.active {
+        opacity: 1;
+      }
+      .raindrop {
+        position: absolute;
+        bottom: 100%;
+        width: 1px;
+        height: 60px;
+        background: linear-gradient(
+          to top,
+          rgba(141, 110, 99, 0.2),
+          rgba(141, 110, 99, 0.6)
+        );
+        animation: fall linear infinite;
+      }
+      .wind-particle {
+        position: absolute;
+        width: 50px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        animation: blow 2s linear infinite;
+      }
+      @keyframes fall {
+        to {
+          transform: translateY(200vh);
+        }
+      }
+      @keyframes blow {
+        from {
+          transform: translateX(-100px);
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100px);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="bubble-background">
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <main id="presentation-container" class="relative w-full h-screen">
+      <!-- Slide 1: Judul -->
+      <section
+        id="slide-1"
+        class="slide items-center justify-center text-center text-white p-4"
+      >
+        <!-- Fullscreen Button -->
+        <div class="absolute top-6 right-6 z-20">
+          <button
+            id="fullscreen-btn"
+            class="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors focus:outline-none"
+          >
+            <svg
+              id="icon-enter-fs"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-white"
+            >
+              <path
+                d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+              />
+            </svg>
+            <svg
+              id="icon-exit-fs"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-white"
+              style="display: none"
+            >
+              <path
+                d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"
+              />
+            </svg>
+          </button>
+        </div>
+        <div
+          class="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style="
+            background-image: url('https://images.unsplash.com/photo-1599723233813-2633332aa87b?q=80&w=2070&auto=format&fit=crop');
+            filter: brightness(0.6);
+          "
+        ></div>
+        <div
+          id="slide1-hero"
+          class="z-10 animate-fade-in flex flex-col items-center w-full"
+        >
+          <div class="relative w-full px-4 mb-10">
+            <div id="wind-container" class="effect-container"></div>
+            <svg class="title-svg" viewBox="0 0 1400 250">
+              <symbol id="title-text">
+                <text x="50%" y="30%" dy=".35em" text-anchor="middle">
+                  Rancang Bangun Alat Pemantau
+                </text>
+                <text x="50%" y="55%" dy=".35em" text-anchor="middle">
+                  Tingkat Kekeruhan Air
+                </text>
+                <text x="50%" y="80%" dy=".35em" text-anchor="middle">
+                  Berbasis Arduino Uno
+                </text>
+              </symbol>
+              <use xlink:href="#title-text" class="title-stroke"></use>
+              <use xlink:href="#title-text" class="title-fill"></use>
+            </svg>
+          </div>
+
+          <div class="relative">
+            <div id="rain-container" class="effect-container"></div>
+            <div
+              id="author-names"
+              class="text-base md:text-lg mt-8 font-semibold tracking-wider"
+            >
+              <p>MAULANA ALFI ZAMRIZA</p>
+              <p>JUANG MANGARAJA MARGOLANG</p>
+              <p>FAKHROL REZI</p>
+              <p>NAURA SASKYA AYUZA</p>
+              <p>RISKI RAMADHANI</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2 - Pengenalan Sensor -->
+      <section
+        id="slide-2"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-4xl w-full text-center">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-6">Sensor TSW-30</h2>
+          <div class="flex flex-col md:flex-row items-center gap-8">
+            <img
+              src="https://media.digikey.com/Photos/DFRobot/SEN0189_sml.jpg"
+              alt="Sensor TSW-30"
+              class="rounded-lg shadow-xl w-1/2 md:w-1/3"
+            />
+            <div class="text-left space-y-4">
+              <p class="text-lg">
+                Sensor kekeruhan TSW-30 adalah komponen optoelektronik yang
+                bekerja berdasarkan prinsip
+                <strong>atenuasi cahaya</strong> (pelemahan cahaya).
+              </p>
+              <p class="p-4 bg-cyan-50 border-l-4 border-cyan-500 rounded-r-lg">
+                Secara sederhana, ia memancarkan seberkas cahaya inframerah
+                melalui sampel air dan mengukur seberapa banyak cahaya yang
+                berhasil sampai ke sisi penerima.
+              </p>
+              <p class="text-lg">
+                <strong
+                  >Semakin keruh airnya, semakin sedikit cahaya yang
+                  sampai.</strong
+                >
+                Perubahan intensitas cahaya inilah yang diubah menjadi sinyal
+                listrik yang dapat dibaca oleh Arduino.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3 - Animasi 3D -->
+      <section
+        id="slide-3"
+        class="slide items-center justify-center p-4 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-5xl w-full text-center">
+          <h2 class="text-3xl md:text-4xl font-bold text-cyan-700 mb-2">
+            Anatomi & Prinsip Kerja (3D Interaktif)
+          </h2>
+          <p class="text-md md:text-xl text-gray-600 mb-4">
+            Gunakan mouse untuk memutar. Arahkan kursor ke komponen saat
+            diuraikan.
+          </p>
+          <div id="sensor-canvas-container" class="shadow-2xl bg-gray-900">
+            <div id="animation-legend">
+              <div class="legend-item">
+                <div
+                  class="legend-color"
+                  style="background-color: #ff0000"
+                ></div>
+                <span>Pemancar IR</span>
+              </div>
+              <div class="legend-item">
+                <div
+                  class="legend-color"
+                  style="background-color: #0000ff"
+                ></div>
+                <span>Detektor</span>
+              </div>
+              <div class="legend-item">
+                <div
+                  class="legend-color"
+                  style="background-color: #ffff00"
+                ></div>
+                <span>Foton Cahaya</span>
+              </div>
+              <div class="legend-item">
+                <div
+                  class="legend-color"
+                  style="background-color: #964b00"
+                ></div>
+                <span>Partikel Keruh</span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="mt-4 p-2 md:p-4 bg-gray-800 rounded-lg max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-4 text-white"
+          >
+            <button
+              id="explode-btn"
+              class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg transition order-last md:order-first"
+            >
+              Uraikan Sensor
+            </button>
+            <div class="flex items-center gap-2">
+              <label
+                for="turbidity-slider-3d"
+                class="font-semibold whitespace-nowrap text-sm"
+                >Kekeruhan:</label
+              >
+              <input
+                id="turbidity-slider-3d"
+                type="range"
+                min="0"
+                max="100"
+                value="10"
+                class="w-full"
+              />
+            </div>
+            <div
+              class="bg-black p-2 rounded-md font-mono text-lg whitespace-nowrap text-center"
+            >
+              Output: <span id="voltage-output-3d">4.50</span> V
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4 - Spesifikasi & Perbandingan -->
+      <section
+        id="slide-4"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-6xl w-full">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-6 text-center">
+            Spesifikasi & Perbandingan
+          </h2>
+          <div class="grid md:grid-cols-2 gap-8">
+            <!-- Spesifikasi -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+              <h3 class="text-2xl font-bold mb-4 text-center">
+                Spesifikasi Teknis TSW-30
+              </h3>
+              <ul class="divide-y divide-gray-200">
+                <li class="py-2 flex justify-between">
+                  <span>Tegangan Operasi:</span>
+                  <span class="font-semibold">5V DC</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Konsumsi Arus:</span>
+                  <span class="font-semibold">&lt; 40mA</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Output Sinyal:</span>
+                  <span class="font-semibold">Analog (0-5V)</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Prinsip Deteksi:</span>
+                  <span class="font-semibold">Atenuasi Cahaya IR</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Panjang Gelombang:</span>
+                  <span class="font-semibold">940nm (Inframerah)</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Suhu Operasi:</span>
+                  <span class="font-semibold">-20°C ~ 85°C</span>
+                </li>
+              </ul>
+            </div>
+            <!-- Perbandingan -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+              <h3 class="text-2xl font-bold mb-4 text-center">
+                Perbandingan Sensor
+              </h3>
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b bg-gray-100">
+                    <th class="p-2">Fitur</th>
+                    <th class="p-2 font-bold text-cyan-700">TSW-30</th>
+                    <th class="p-2">DFRobot SEN0189</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b">
+                    <td class="p-2">Prinsip</td>
+                    <td class="p-2">Atenuasi</td>
+                    <td class="p-2">Nephelometri (90°)</td>
+                  </tr>
+                  <tr class="border-b">
+                    <td class="p-2">Output</td>
+                    <td class="p-2">Analog</td>
+                    <td class="p-2">Analog & Digital</td>
+                  </tr>
+                  <tr class="border-b">
+                    <td class="p-2">Akurasi</td>
+                    <td class="p-2">Baik untuk deteksi umum</td>
+                    <td class="p-2">Lebih baik pada NTU rendah</td>
+                  </tr>
+                  <tr class="border-b">
+                    <td class="p-2">Probe Tahan Air</td>
+                    <td class="p-2">Ujung saja</td>
+                    <td class="p-2">Ya, seluruh probe</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2">Aplikasi Ideal</td>
+                    <td class="p-2">Deteksi Cepat, Mesin Cuci</td>
+                    <td class="p-2">Monitoring Lingkungan</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 5: Struktur & Cara Kerja Internal -->
+      <section
+        id="slide-5"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-6xl w-full">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-8 text-center">
+            Struktur & Cara Kerja Internal Sensor
+          </h2>
+          <div class="grid md:grid-cols-3 gap-6 text-left">
+            <div
+              class="p-6 bg-blue-50 rounded-lg shadow-md border-l-4 border-blue-500"
+            >
+              <h3 class="text-2xl font-bold text-blue-800 mb-2">
+                1. Struktur Fisik
+              </h3>
+              <p class="text-gray-700">
+                Sensor terdiri dari sepasang komponen utama yang saling
+                berhadapan di dalam sebuah wadah plastik:
+              </p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li>
+                  <strong>IR Emitter:</strong> Dioda yang memancarkan cahaya
+                  inframerah (940nm).
+                </li>
+                <li>
+                  <strong>Phototransistor:</strong> Komponen yang menerima
+                  cahaya dan sensitif terhadap intensitasnya.
+                </li>
+              </ul>
+              <p class="mt-2 text-sm text-red-600 font-semibold">
+                Penting: Hanya ujung probe yang transparan yang tahan air.
+              </p>
+            </div>
+            <div
+              class="p-6 bg-green-50 rounded-lg shadow-md border-l-4 border-green-500"
+            >
+              <h3 class="text-2xl font-bold text-green-800 mb-2">
+                2. Mekanisme Optoelektronik
+              </h3>
+              <p class="text-gray-700">
+                Proses konversi kekeruhan menjadi sinyal listrik terjadi dalam
+                beberapa langkah:
+              </p>
+              <ol class="list-decimal list-inside mt-2 space-y-1">
+                <li>
+                  <strong>Emisi:</strong> IR Emitter menembakkan cahaya
+                  melintasi celah sensor.
+                </li>
+                <li>
+                  <strong>Interaksi:</strong> Cahaya berinteraksi dengan
+                  partikel di air, yang menyerap dan menghamburkannya.
+                </li>
+                <li>
+                  <strong>Konversi:</strong> Phototransistor mengubah intensitas
+                  cahaya yang diterima menjadi arus listrik.
+                </li>
+              </ol>
+            </div>
+            <div
+              class="p-6 bg-purple-50 rounded-lg shadow-md border-l-4 border-purple-500"
+            >
+              <h3 class="text-2xl font-bold text-purple-800 mb-2">
+                3. Hubungan Terbalik
+              </h3>
+              <p class="text-gray-700">
+                Ini adalah prinsip kerja fundamental sensor:
+              </p>
+              <div class="mt-3 text-center p-4 bg-purple-100 rounded-lg">
+                <p class="text-lg font-bold">↑ Kekeruhan</p>
+                <p class="text-lg font-bold">↓</p>
+                <p class="text-lg font-bold">↓ Cahaya Diterima</p>
+                <p class="text-lg font-bold">↓</p>
+                <p class="text-lg font-bold">↓ Sinyal Listrik</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: Sinyal & Kalibrasi -->
+      <section
+        id="slide-6"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-6xl w-full">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-8 text-center">
+            Dari Sinyal Mentah ke Nilai Terukur
+          </h2>
+          <div class="grid md:grid-cols-2 gap-8 items-start">
+            <div class="space-y-6">
+              <div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                  Pengkondisian Sinyal & Peran Op-Amp
+                </h3>
+                <p class="text-gray-700">
+                  Arus listrik mentah dari phototransistor sangat lemah. Sebuah
+                  sirkuit pengkondisi sinyal, yang menggunakan
+                  <strong>Operational Amplifier (Op-Amp)</strong> seperti LM393,
+                  berfungsi untuk:
+                </p>
+                <ul class="list-disc list-inside mt-2 space-y-1">
+                  <li>
+                    <strong>Menguatkan sinyal</strong> menjadi lebih besar dan
+                    stabil.
+                  </li>
+                  <li>
+                    <strong>Mengubah sinyal arus</strong> menjadi sinyal
+                    <strong>tegangan (0-5V)</strong> yang dapat dibaca oleh ADC
+                    Arduino.
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                  Proses Kalibrasi Sensor
+                </h3>
+                <p class="text-gray-700">
+                  Tegangan 0-5V belum memiliki arti. Kalibrasi adalah proses
+                  krusial untuk mengubahnya menjadi satuan
+                  <strong>NTU (Nephelometric Turbidity Unit)</strong>:
+                </p>
+                <ol class="list-decimal list-inside mt-2 space-y-1">
+                  <li>
+                    Sensor diukur pada beberapa larutan standar dengan nilai NTU
+                    yang diketahui (misal: Formazin).
+                  </li>
+                  <li>
+                    Data pasangan Tegangan-NTU diplot untuk membuat
+                    <strong>kurva kalibrasi</strong>.
+                  </li>
+                  <li>
+                    Sebuah <strong>persamaan matematis</strong> (seringkali
+                    non-linear) dibuat dari kurva tersebut.
+                  </li>
+                  <li>
+                    Persamaan ini diprogram ke Arduino untuk konversi otomatis.
+                  </li>
+                </ol>
+              </div>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+              <h3 class="text-2xl font-bold mb-4 text-center">
+                Spesifikasi Kunci
+              </h3>
+              <ul class="divide-y divide-gray-200">
+                <li class="py-2 flex justify-between">
+                  <span>Tegangan Operasi:</span>
+                  <span class="font-semibold">5V DC</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Sinyal Output:</span>
+                  <span class="font-semibold">Analog (0-5V)</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Panjang Gelombang:</span>
+                  <span class="font-semibold">940nm (Inframerah)</span>
+                </li>
+                <li class="py-2 flex justify-between text-sm">
+                  <span class="italic text-gray-600"
+                    >*Mengurangi gangguan dari cahaya sekitar.</span
+                  >
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Rentang Ukur:</span>
+                  <span class="font-semibold">0 - 1000 NTU</span>
+                </li>
+                <li class="py-2 flex justify-between">
+                  <span>Suhu Operasi:</span>
+                  <span class="font-semibold">-20°C ~ 85°C</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 7: Tiga Kondisi Kekeruhan -->
+      <section
+        id="slide-7"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-6xl w-full text-center">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-8">
+            Tiga Kondisi Kekeruhan
+          </h2>
+          <div class="grid md:grid-cols-3 gap-8 text-center">
+            <!-- Kondisi Jernih -->
+            <div
+              class="bg-green-100 p-6 rounded-lg shadow-lg border-b-4 border-green-500"
+            >
+              <div class="text-6xl mb-4">💧</div>
+              <h3 class="text-2xl font-bold text-green-800 mb-2">JERNIH</h3>
+              <p class="font-semibold text-lg text-gray-700 mb-3">
+                &lt; 50 NTU
+              </p>
+              <p class="text-gray-600">
+                Partikel sangat sedikit, hampir semua cahaya inframerah berhasil
+                melewati air. Sistem mengindikasikan kondisi aman dengan LED
+                hijau.
+              </p>
+            </div>
+            <!-- Kondisi Keruh -->
+            <div
+              class="bg-yellow-100 p-6 rounded-lg shadow-lg border-b-4 border-yellow-500"
+            >
+              <div class="text-6xl mb-4">⚠️</div>
+              <h3 class="text-2xl font-bold text-yellow-800 mb-2">KERUH</h3>
+              <p class="font-semibold text-lg text-gray-700 mb-3">
+                50 - 500 NTU
+              </p>
+              <p class="text-gray-600">
+                Partikel tersuspensi mulai menghalangi dan menghamburkan cahaya.
+                Sistem memberikan peringatan visual dengan LED kuning.
+              </p>
+            </div>
+            <!-- Kondisi Kotor -->
+            <div
+              class="bg-red-100 p-6 rounded-lg shadow-lg border-b-4 border-red-500"
+            >
+              <div class="text-6xl mb-4">🚨</div>
+              <h3 class="text-2xl font-bold text-red-800 mb-2">KOTOR</h3>
+              <p class="font-semibold text-lg text-gray-700 mb-3">
+                &gt; 500 NTU
+              </p>
+              <p class="text-gray-600">
+                Kepadatan partikel sangat tinggi, sebagian besar cahaya
+                terhalang. Sistem mengaktifkan alarm audio (buzzer) sebagai
+                peringatan bahaya.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8: Bedah Kode -->
+      <section
+        id="slide-8"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-6xl w-full">
+          <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-cyan-700 mb-2">
+              Logika di Balik Layar
+            </h2>
+          </div>
+          <div class="grid md:grid-cols-2 gap-8 items-start">
+            <div class="space-y-4">
+              <div class="code-block" data-code-id="1">
+                <pre><span class="code-comment">// 1. Stabilisasi & Rata-rata</span>
+<span class="code-keyword">long</span> total = 0;
+<span class="code-keyword">for</span> (<span class="code-keyword">int</span> i=0; i < NUM_SAMPLES; i++) {
+  total += <span class="code-function">analogRead</span>(pin);
+  <span class="code-function">delay</span>(25);
+}
+<span class="code-keyword">int</span> value = total / NUM_SAMPLES;</pre>
+              </div>
+              <div class="code-block" data-code-id="2">
+                <pre><span class="code-comment">// 2. Konversi ke NTU</span>
+<span class="code-keyword">int</span> ntu = <span class="code-function">map</span>(value, 0, C_VAL, MAX, 0);
+ntu = <span class="code-function">constrain</span>(ntu, 0, MAX_NTU);</pre>
+              </div>
+              <div class="code-block" data-code-id="3">
+                <pre><span class="code-comment">// 3. Logika Keputusan</span>
+<span class="code-keyword">if</span> (ntu < 50) { <span class="code-comment">// Jernih</span> }
+<span class="code-keyword">else if</span> (ntu < 500) { <span class="code-comment">// Keruh</span> }
+<span class="code-keyword">else</span> { <span class="code-comment">// Kotor</span> }</pre>
+              </div>
+            </div>
+            <div
+              id="code-explanation"
+              class="p-6 bg-gray-800 text-white rounded-lg shadow-lg min-h-[300px]"
+            >
+              <h3 class="font-bold text-lg mb-4">Penjelasan Kode</h3>
+              <p class="text-gray-300">
+                Klik blok kode untuk melihat penjelasan.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 9: Demo Interaktif -->
+      <section
+        id="slide-9"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-4xl w-full text-center">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-6">
+            Demo Interaktif 🔬
+          </h2>
+          <div class="my-8">
+            <label for="ntu-slider" class="block mb-2 font-semibold"
+              >Simulasi Nilai Kekeruhan (NTU)</label
+            >
+            <input
+              id="ntu-slider"
+              type="range"
+              min="0"
+              max="1000"
+              value="25"
+              class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <p class="mt-2 text-lg font-bold">
+              Nilai NTU: <span id="ntu-value">25</span>
+            </p>
+          </div>
+          <div class="p-6 bg-gray-800 rounded-lg shadow-2xl max-w-lg mx-auto">
+            <h3 class="text-white font-semibold mb-4">Tampilan Alat Virtual</h3>
+            <div
+              id="demo-lcd"
+              class="bg-blue-200 text-blue-900 font-mono p-4 rounded-md text-left text-lg h-24 flex flex-col justify-center"
+            ></div>
+            <div class="flex justify-around items-center mt-6">
+              <div>
+                <p class="text-white mb-2">LED Status</p>
+                <div class="flex gap-4">
+                  <div
+                    id="demo-led-green"
+                    class="w-12 h-12 rounded-full bg-gray-600 border-2"
+                  ></div>
+                  <div
+                    id="demo-led-yellow"
+                    class="w-12 h-12 rounded-full bg-gray-600 border-2"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <p class="text-white mb-2">Alarm</p>
+                <div
+                  id="demo-buzzer"
+                  class="w-24 h-12 rounded-lg bg-gray-600 flex items-center justify-center text-white font-bold text-lg border-2"
+                >
+                  DIAM
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 10: Inovasi Masa Depan -->
+      <section
+        id="slide-10"
+        class="slide items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+      >
+        <div class="max-w-4xl w-full text-center">
+          <h2 class="text-4xl font-bold text-cyan-700 mb-8">
+            Inovasi Masa Depan 🚀
+          </h2>
+          <ul class="space-y-6 text-left max-w-2xl mx-auto">
+            <li
+              class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md"
+            >
+              <span class="text-3xl">☁️</span>
+              <div>
+                <h3 class="font-bold text-lg">Konektivitas IoT</h3>
+                <p>Mengirim data ke cloud untuk pemantauan jarak jauh.</p>
+              </div>
+            </li>
+            <li
+              class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md"
+            >
+              <span class="text-3xl">📈</span>
+              <div>
+                <h3 class="font-bold text-lg">Kalibrasi Non-Linear</h3>
+                <p>
+                  Menerapkan kurva kalibrasi polinomial untuk akurasi lebih
+                  tinggi.
+                </p>
+              </div>
+            </li>
+            <li
+              class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md"
+            >
+              <span class="text-3xl">🧪</span>
+              <div>
+                <h3 class="font-bold text-lg">Analisis Multi-Parameter</h3>
+                <p>
+                  Menambahkan sensor lain (pH, TDS) untuk hitung Indeks Kualitas
+                  Air (WQI).
+                </p>
+              </div>
+            </li>
+            <li
+              class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md"
+            >
+              <span class="text-3xl">🧠</span>
+              <div>
+                <h3 class="font-bold text-lg">Edge AI</h3>
+                <p>Menanamkan model machine learning untuk deteksi anomali.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Slide 11: Terima Kasih -->
+      <section
+        id="slide-11"
+        class="slide items-center justify-center text-center p-8 bg-gray-900 text-white"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <h1
+            class="text-8xl font-extrabold tracking-tighter"
+            style="
+              background: linear-gradient(to right, #22d3ee, #a5f3fc);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            "
+          >
+            Terima Kasih
+          </h1>
+        </div>
+      </section>
+    </main>
+
+    <div id="keyboard-hint" class="">
+      Gunakan tombol panah ◄ ► untuk navigasi
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const slides = document.querySelectorAll(".slide");
+        const totalSlides = slides.length;
+        const keyboardHint = document.getElementById("keyboard-hint");
+        let currentSlide = 1;
+        let idleTimer;
+        let thermoInterval;
+        let titleThermoInterval;
+
+        // Fullscreen Toggle Logic
+        const fullscreenBtn = document.getElementById("fullscreen-btn");
+        const enterFsIcon = document.getElementById("icon-enter-fs");
+        const exitFsIcon = document.getElementById("icon-exit-fs");
+
+        function toggleFullScreen() {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+              // Optional: a friendly alert for users if fullscreen fails.
+              // alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+          } else if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+
+        function updateFullscreenIcon() {
+          if (document.fullscreenElement) {
+            enterFsIcon.style.display = "none";
+            exitFsIcon.style.display = "block";
+          } else {
+            enterFsIcon.style.display = "block";
+            exitFsIcon.style.display = "none";
+          }
+        }
+
+        fullscreenBtn.addEventListener("click", toggleFullScreen);
+        document.addEventListener("fullscreenchange", updateFullscreenIcon);
+
+        function showSlide(slideNumber) {
+          if (slideNumber < 1 || slideNumber > totalSlides) return;
+
+          resetIdleAnimation();
+
+          const currentActiveSlide = document.querySelector(".slide.active");
+          if (currentActiveSlide && currentActiveSlide.id === "slide-3") {
+            stopAnimate3D();
+          }
+
+          slides.forEach((slide) => slide.classList.remove("active"));
+          const activeSlide = document.getElementById(`slide-${slideNumber}`);
+          if (activeSlide) activeSlide.classList.add("active");
+
+          currentSlide = slideNumber;
+
+          if (slideNumber === 1) {
+            startIdleAnimationTimer();
+          }
+          if (slideNumber === 3) initSensor3D();
+        }
+
+        setTimeout(() => {
+          keyboardHint.classList.add("fade-out");
+        }, 5000);
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight") {
+            showSlide(currentSlide + 1);
+          } else if (e.key === "ArrowLeft") {
+            showSlide(currentSlide - 1);
+          }
+        });
+
+        // Slide 1 Idle Animation
+        const rainContainer = document.getElementById("rain-container");
+        const windContainer = document.getElementById("wind-container");
+        const authorNames = document.getElementById("author-names");
+        const titleContainer = document.getElementById("title-container");
+
+        function startIdleAnimationTimer() {
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(() => {
+            if (currentSlide !== 1) return;
+
+            createWind();
+
+            setTimeout(() => {
+              if (currentSlide !== 1) return;
+              createRain();
+              applyThermochromicEffect(titleContainer, 30, "title");
+            }, 1000);
+
+            setTimeout(() => {
+              if (currentSlide !== 1) return;
+              applyThermochromicEffect(authorNames, 50, "authors");
+            }, 3000);
+          }, 5000); // 5 seconds
+        }
+
+        function resetIdleAnimation() {
+          clearTimeout(idleTimer);
+          clearInterval(thermoInterval);
+          clearInterval(titleThermoInterval);
+
+          if (rainContainer) {
+            rainContainer.classList.remove("active");
+            rainContainer.innerHTML = "";
+          }
+          if (windContainer) {
+            windContainer.classList.remove("active");
+            windContainer.innerHTML = "";
+          }
+          document.querySelectorAll(".thermo-letter").forEach((span) => {
+            span.classList.remove("thermo-letter");
+          });
+        }
+
+        function createWind() {
+          if (!windContainer) return;
+          windContainer.classList.add("active");
+          let particles = "";
+          for (let i = 0; i < 15; i++) {
+            const top = Math.random() * 100;
+            const duration = Math.random() * 1 + 1;
+            const delay = Math.random() * 2;
+            particles += `<div class="wind-particle" style="top: ${top}%; animation-duration: ${duration}s; animation-delay: ${delay}s;"></div>`;
+          }
+          windContainer.innerHTML = particles;
+        }
+
+        function createRain() {
+          if (!rainContainer) return;
+          rainContainer.classList.add("active");
+          let drops = "";
+          for (let i = 0; i < 100; i++) {
+            const left = Math.floor(Math.random() * 100);
+            const duration = Math.random() * 0.5 + 0.5;
+            const delay = Math.random() * 2;
+            drops += `<div class="raindrop" style="left: ${left}%; animation-duration: ${duration}s; animation-delay: ${delay}s;"></div>`;
+          }
+          rainContainer.innerHTML = drops;
+        }
+
+        function applyThermochromicEffect(element, intervalSpeed, type) {
+          if (!element) return;
+          const letters = Array.from(element.querySelectorAll("span"));
+
+          for (let i = letters.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [letters[i], letters[j]] = [letters[j], letters[i]];
+          }
+
+          let index = 0;
+
+          const interval = setInterval(() => {
+            if (currentSlide !== 1) {
+              clearInterval(interval);
+              return;
+            }
+            if (index < letters.length) {
+              letters[index].classList.add("thermo-letter");
+              index++;
+            } else {
+              clearInterval(interval);
+            }
+          }, intervalSpeed);
+
+          if (type === "authors") thermoInterval = interval;
+          if (type === "title") titleThermoInterval = interval;
+        }
+
+        // Slide 1
+        const hero = document.getElementById("slide1-hero");
+        const slide1 = document.getElementById("slide-1");
+        slide1.addEventListener("mousemove", (e) => {
+          const { clientX, clientY } = e;
+          const { offsetWidth, offsetHeight } = slide1;
+          const x = (clientX / offsetWidth - 0.5) * 30;
+          const y = (clientY / offsetHeight - 0.5) * 30;
+          hero.style.transform = `translate(${x}px, ${y}px)`;
+        });
+
+        // Wrap letters in spans
+        function wrapLetters(container) {
+          if (!container) return;
+          const elements = container.querySelectorAll("h1, p");
+          elements.forEach((el) => {
+            if (el.querySelector("span")) return;
+            el.innerHTML = el.textContent
+              .split("")
+              .map((char, i) =>
+                char === " " ? " " : `<span style="--i:${i + 1}">${char}</span>`
+              )
+              .join("");
+          });
+        }
+        wrapLetters(document.getElementById("title-container"));
+        wrapLetters(document.getElementById("author-names"));
+
+        // Slide 3: 3D Sensor Animation
+        let scene3d,
+          camera3d,
+          renderer3d,
+          controls3d,
+          sensorGroup,
+          water,
+          lightParticles,
+          turbidityParticles;
+        let arrowEmitter, arrowDetector;
+        let animationFrameId;
+        let isExploded = false;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        const clearWaterColor = new THREE.Color(0x87ceeb);
+        const murkyWaterColor = new THREE.Color(0x7a6652);
+
+        const turbiditySlider3d = document.getElementById(
+          "turbidity-slider-3d"
+        );
+        const voltageOutput3d = document.getElementById("voltage-output-3d");
+        const explodeBtn = document.getElementById("explode-btn");
+        const tooltipElement = document.getElementById("tooltip");
+
+        const tooltipTexts = {
+          Emitter:
+            "Pemancar Inframerah (IR Emitter): Menembakkan seberkas cahaya inframerah 940nm yang tak terlihat.",
+          Detector:
+            "Detektor (Phototransistor): Menerima cahaya dari pemancar. Intensitas cahaya yang diterima menentukan output tegangan.",
+          SensorArm:
+            "Badan Sensor (Probe): Casing pelindung yang menampung komponen optik dan membentuk celah pengukuran.",
+          SensorBase:
+            "Dasar Sensor: Menghubungkan kedua sisi probe dan memberikan stabilitas struktural.",
+          ArahEmisi:
+            "Arah Emisi Cahaya: Panah ini menunjukkan arah pancaran foton dari Emitter.",
+          ArahDeteksi:
+            "Arah Deteksi Cahaya: Panah ini menunjukkan sisi penerima tempat foton dideteksi.",
+          ProbeTip:
+            "Ujung Probe Transparan: Bagian ini yang dicelupkan ke air, memungkinkan cahaya untuk lewat.",
+        };
+
+        function initSensor3D() {
+          if (scene3d) {
+            animate3D(); // Restart animation if already initialized
+            return;
+          }
+          const container = document.getElementById("sensor-canvas-container");
+          const canvas = container.querySelector("canvas");
+          if (canvas) container.removeChild(canvas);
+
+          scene3d = new THREE.Scene();
+          camera3d = new THREE.PerspectiveCamera(
+            75,
+            container.clientWidth / container.clientHeight,
+            0.1,
+            1000
+          );
+          camera3d.position.z = 10;
+
+          renderer3d = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+          });
+          renderer3d.setSize(container.clientWidth, container.clientHeight);
+          renderer3d.setClearColor(0x000000, 0);
+          container.appendChild(renderer3d.domElement);
+
+          window.addEventListener("resize", () => {
+            if (!renderer3d) return;
+            camera3d.aspect = container.clientWidth / container.clientHeight;
+            camera3d.updateProjectionMatrix();
+            renderer3d.setSize(container.clientWidth, container.clientHeight);
+          });
+
+          container.addEventListener("mousemove", onCanvasMouseMove);
+          container.addEventListener("mouseleave", () => {
+            tooltipElement.style.display = "none";
+          });
+
+          controls3d = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+          controls3d.enableDamping = true;
+          controls3d.dampingFactor = 0.05;
+
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+          scene3d.add(ambientLight);
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+          directionalLight.position.set(5, 5, 5);
+          scene3d.add(directionalLight);
+
+          sensorGroup = new THREE.Group();
+          const bodyMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2c3e50,
+            roughness: 0.4,
+            metalness: 0.2,
+          });
+          const probeTipMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.4,
+          });
+
+          // Create a more realistic U-shaped sensor
+          const armShape = new THREE.Shape();
+          armShape.moveTo(-0.5, -2.5);
+          armShape.lineTo(-0.5, 2.0);
+          armShape.absarc(0, 2.0, 0.5, Math.PI, 0, true);
+          armShape.lineTo(0.5, -2.5);
+          armShape.lineTo(-0.5, -2.5);
+          const extrudeSettings = {
+            depth: 0.8,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 2,
+            bevelSize: 0.1,
+            bevelThickness: 0.1,
+          };
+
+          const armGeometry = new THREE.ExtrudeGeometry(
+            armShape,
+            extrudeSettings
+          );
+          const armLeft = new THREE.Mesh(armGeometry, bodyMaterial);
+          armLeft.name = "SensorArm";
+          armLeft.position.x = -2;
+          armLeft.userData.originalPosition = new THREE.Vector3(-2, 0, 0);
+          armLeft.userData.explodedPosition = new THREE.Vector3(-4.5, 0, 0);
+
+          const armRight = armLeft.clone();
+          armRight.name = "SensorArm";
+          armRight.position.x = 2;
+          armRight.rotation.y = Math.PI; // flip it
+          armRight.userData.originalPosition = new THREE.Vector3(2, 0, 0);
+          armRight.userData.explodedPosition = new THREE.Vector3(4.5, 0, 0);
+
+          const base = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 1, 1),
+            bodyMaterial
+          );
+          base.name = "SensorBase";
+          base.position.y = -2.5;
+          base.userData.originalPosition = new THREE.Vector3(0, -2.5, 0);
+          base.userData.explodedPosition = new THREE.Vector3(0, -4, 0);
+
+          // Probe tips
+          const tipGeometry = new THREE.CylinderGeometry(0.55, 0.55, 1, 32);
+          const tipLeft = new THREE.Mesh(tipGeometry, probeTipMaterial);
+          tipLeft.name = "ProbeTip";
+          tipLeft.position.y = -2.0;
+          tipLeft.userData.originalPosition = new THREE.Vector3(-2, -2.0, 0);
+          tipLeft.userData.explodedPosition = new THREE.Vector3(-4.5, -2.0, 0);
+
+          const tipRight = tipLeft.clone();
+          tipRight.name = "ProbeTip";
+          tipRight.userData.originalPosition = new THREE.Vector3(2, -2.0, 0);
+          tipRight.userData.explodedPosition = new THREE.Vector3(4.5, -2.0, 0);
+
+          const emitter = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 })
+          );
+          emitter.name = "Emitter";
+          emitter.rotation.x = Math.PI / 2;
+          emitter.position.set(0, 0, 0.45);
+          emitter.userData.originalPosition = new THREE.Vector3(-2, 0.5, 0.45);
+          emitter.userData.explodedPosition = new THREE.Vector3(-2, 2, 0.5);
+
+          const detector = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16),
+            new THREE.MeshBasicMaterial({ color: 0x0000ff })
+          );
+          detector.name = "Detector";
+          detector.rotation.x = Math.PI / 2;
+          detector.position.set(0, 0, 0.45);
+          detector.userData.originalPosition = new THREE.Vector3(2, 0.5, 0.45);
+          detector.userData.explodedPosition = new THREE.Vector3(2, 2, 0.5);
+
+          // Arah Panah
+          arrowEmitter = new THREE.ArrowHelper(
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            2.5,
+            0xff0000,
+            0.5,
+            0.3
+          );
+          arrowEmitter.name = "ArahEmisi";
+          arrowEmitter.visible = false;
+
+          arrowDetector = new THREE.ArrowHelper(
+            new THREE.Vector3(-1, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            2.5,
+            0x0000ff,
+            0.5,
+            0.3
+          );
+          arrowDetector.name = "ArahDeteksi";
+          arrowDetector.visible = false;
+
+          sensorGroup.add(
+            armLeft,
+            armRight,
+            base,
+            tipLeft,
+            tipRight,
+            emitter,
+            detector,
+            arrowEmitter,
+            arrowDetector
+          );
+          sensorGroup.children.forEach((child) => {
+            if (child.userData.originalPosition)
+              child.position.copy(child.userData.originalPosition);
+          });
+          sensorGroup.scale.set(1.2, 1.2, 1.2);
+          scene3d.add(sensorGroup);
+
+          arrowEmitter.position.set(-1.8, 2, 0.5);
+          arrowDetector.position.set(1.8, 2, 0.5);
+
+          water = new THREE.Mesh(
+            new THREE.BoxGeometry(3.5, 3.5, 3),
+            new THREE.MeshBasicMaterial({
+              color: clearWaterColor,
+              transparent: true,
+              opacity: 0.3,
+            })
+          );
+          water.position.y = -1;
+          scene3d.add(water);
+
+          const lightMaterial = new THREE.PointsMaterial({
+            color: 0xffff00,
+            size: 0.1,
+          });
+          const lightGeometry = new THREE.BufferGeometry();
+          const lightVertices = Array(200)
+            .fill(0)
+            .flatMap(() => [-1.8, (Math.random() - 0.5) * 2, 0.5]);
+          lightGeometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(lightVertices, 3)
+          );
+          lightParticles = new THREE.Points(lightGeometry, lightMaterial);
+          scene3d.add(lightParticles);
+
+          const turbidityMaterial = new THREE.PointsMaterial({
+            color: 0x964b00,
+            size: 0.08,
+            transparent: true,
+            opacity: 0.8,
+          });
+          const turbidityGeometry = new THREE.BufferGeometry();
+          const turbidityVertices = Array(5000)
+            .fill(0)
+            .flatMap(() => [
+              (Math.random() - 0.5) * 3,
+              (Math.random() - 0.5) * 3,
+              (Math.random() - 0.5) * 3,
+            ]);
+          turbidityGeometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(turbidityVertices, 3)
+          );
+          turbidityParticles = new THREE.Points(
+            turbidityGeometry,
+            turbidityMaterial
+          );
+          turbidityParticles.visible = false;
+          scene3d.add(turbidityParticles);
+
+          updateWaterVisuals(parseInt(turbiditySlider3d.value));
+          animate3D();
+        }
+
+        function stopAnimate3D() {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+        }
+
+        function animate3D() {
+          animationFrameId = requestAnimationFrame(animate3D);
+          controls3d.update();
+
+          sensorGroup.children.forEach((child) => {
+            if (
+              child.userData.originalPosition &&
+              child.userData.explodedPosition
+            ) {
+              const targetPosition = isExploded
+                ? child.userData.explodedPosition
+                : child.userData.originalPosition;
+              child.position.lerp(targetPosition, 0.05);
+            }
+          });
+
+          const emitter = sensorGroup.getObjectByName("Emitter");
+          if (emitter) {
+            arrowEmitter.position
+              .copy(emitter.position)
+              .add(new THREE.Vector3(0.5, 0, 0));
+            arrowDetector.position
+              .copy(sensorGroup.getObjectByName("Detector").position)
+              .add(new THREE.Vector3(-0.5, 0, 0));
+          }
+
+          const lightPositions = lightParticles.geometry.attributes.position;
+          const turbidityLevel = parseInt(turbiditySlider3d.value) / 100;
+
+          for (let i = 0; i < lightPositions.count; i++) {
+            lightPositions.array[i * 3] += 0.1;
+            if (Math.random() < turbidityLevel * 0.4) {
+              lightPositions.array[i * 3 + 1] += (Math.random() - 0.5) * 0.2; // Scatter
+            }
+            if (lightPositions.array[i * 3] > 1.8) {
+              lightPositions.array[i * 3] = -1.8;
+              lightPositions.array[i * 3 + 1] = (Math.random() - 0.5) * 2;
+            }
+          }
+          lightPositions.needsUpdate = true;
+
+          renderer3d.render(scene3d, camera3d);
+        }
+
+        function updateWaterVisuals(turbidityValue) {
+          const turbidityLevel = turbidityValue / 100;
+          const voltage = 0.5 + (1 - turbidityLevel) * 4.0;
+          voltageOutput3d.textContent = voltage.toFixed(2);
+
+          if (water) {
+            water.material.opacity = 0.25 + turbidityLevel * 0.6; // Opacity 0.25 -> 0.85
+            water.material.color
+              .copy(clearWaterColor)
+              .lerp(murkyWaterColor, turbidityLevel);
+          }
+          if (turbidityParticles) {
+            turbidityParticles.geometry.setDrawRange(
+              0,
+              Math.floor(turbidityLevel * 5000)
+            );
+            turbidityParticles.visible = turbidityLevel > 0.01;
+          }
+        }
+        turbiditySlider3d.addEventListener("input", (e) =>
+          updateWaterVisuals(parseInt(e.target.value))
+        );
+
+        function onCanvasMouseMove(event) {
+          if (!isExploded) {
+            tooltipElement.style.display = "none";
+            return;
+          }
+          const container = document.getElementById("sensor-canvas-container");
+          const rect = container.getBoundingClientRect();
+          mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(mouse, camera3d);
+          const intersects = raycaster.intersectObjects(
+            sensorGroup.children,
+            true
+          );
+          if (intersects.length > 0) {
+            let object = intersects[0].object;
+            if (object.parent instanceof THREE.ArrowHelper) {
+              object = object.parent;
+            }
+
+            let name = object.name;
+            if (
+              object.parent.name === "SensorArm" ||
+              object.parent.name === "SensorBase"
+            ) {
+              name = object.parent.name;
+            }
+
+            tooltipElement.style.display = "block";
+            tooltipElement.style.left = `${event.clientX + 15}px`;
+            tooltipElement.style.top = `${event.clientY}px`;
+            tooltipElement.textContent =
+              tooltipTexts[name] || "Komponen Sensor";
+          } else {
+            tooltipElement.style.display = "none";
+          }
+        }
+
+        explodeBtn.addEventListener("click", () => {
+          isExploded = !isExploded;
+          explodeBtn.textContent = isExploded
+            ? "Satukan Sensor"
+            : "Uraikan Sensor";
+          if (arrowEmitter) arrowEmitter.visible = isExploded;
+          if (arrowDetector) arrowDetector.visible = isExploded;
+          if (!isExploded) {
+            tooltipElement.style.display = "none";
+          }
+        });
+
+        // Slide 8: Code Explanation
+        const codeBlocks = document.querySelectorAll("#slide-8 .code-block");
+        const codeExplanationDiv = document.getElementById("code-explanation");
+        const explanationsSlide8 = {
+          1: "<strong>Stabilisasi & Rata-rata:</strong> Sinyal dari sensor analog bisa sedikit berfluktuasi (noise). Untuk mendapatkan bacaan yang andal, kita mengambil banyak sampel dalam waktu singkat. Nilai-nilai ini kemudian dirata-ratakan untuk menghasilkan satu nilai yang stabil dan mewakili kondisi air saat itu.",
+          2: "<strong>Konversi ke NTU:</strong> Arduino membaca nilai analog sebagai angka (0-1023). Fungsi `map()` secara proporsional mengubah rentang ini menjadi skala Nephelometric Turbidity Units (NTU). `constrain()` memastikan nilainya tidak melebihi batas wajar.",
+          3: "<strong>Logika Keputusan:</strong> Ini adalah 'otak' dari sistem notifikasi. Berdasarkan nilai NTU, program memutuskan status air ('Jernih', 'Keruh', 'Kotor') dan mengaktifkan output yang sesuai seperti LED hijau/kuning atau alarm buzzer.",
+        };
+        codeBlocks.forEach((block) => {
+          block.addEventListener("click", () => {
+            const codeId = block.getAttribute("data-code-id");
+            codeExplanationDiv.innerHTML = `<h3 class="font-bold text-lg mb-4 text-cyan-300">Penjelasan Blok ${codeId}</h3><p class="text-gray-300">${explanationsSlide8[codeId]}</p>`;
+          });
+        });
+
+        // Slide 9: Demo
+        const ntuSlider = document.querySelector("#slide-9 #ntu-slider");
+        const ntuValueSpan = document.querySelector("#slide-9 #ntu-value");
+        const demoLcd = document.querySelector("#slide-9 #demo-lcd");
+        const demoLedGreen = document.querySelector("#slide-9 #demo-led-green");
+        const demoLedYellow = document.querySelector(
+          "#slide-9 #demo-led-yellow"
+        );
+        const demoBuzzer = document.querySelector("#slide-9 #demo-buzzer");
+
+        ntuSlider.addEventListener("input", (e) => {
+          const ntu = parseInt(e.target.value);
+          ntuValueSpan.textContent = ntu;
+          updateDemo(ntu);
+        });
+        function updateDemo(ntu) {
+          let kondisi = ntu < 50 ? "Jernih" : ntu < 500 ? "Keruh" : "Kotor";
+          demoLedGreen.style.backgroundColor = ntu < 50 ? "#22c55e" : "#4b5563";
+          demoLedYellow.style.backgroundColor =
+            ntu >= 50 && ntu < 500 ? "#facc15" : "#4b5563";
+          demoBuzzer.style.backgroundColor = ntu >= 500 ? "#ef4444" : "#4b5563";
+          demoBuzzer.textContent = ntu >= 500 ? "BUNYI!" : "DIAM";
+          demoLcd.innerHTML = `<p>Hasil: ${ntu} NTU</p><p>Kondisi: ${kondisi}</p>`;
+        }
+
+        // Init
+        showSlide(1);
+        updateDemo(parseInt(ntuSlider.value));
+      });
+    </script>
+  </body>
+</html>
